@@ -2,24 +2,31 @@
 
 @section('content')
 <div class="space-y-6">
-    <h1 class="text-2xl font-bold text-white">Dashboard Admin</h1>
-    
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl">
-            <p class="text-xs text-slate-400 uppercase font-semibold">Total User</p>
-            <p class="text-3xl font-extrabold text-indigo-400 mt-2">12</p>
+    <h1 class="text-3xl font-bold text-white">Dashboard Admin</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Total User -->
+        <div class="bg-slate-800/80 border border-slate-700/60 p-6 rounded-2xl shadow-xl space-y-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">TOTAL USER</span>
+            <div class="text-4xl font-extrabold text-indigo-400">{{ $totalUser }}</div>
         </div>
-        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl">
-            <p class="text-xs text-slate-400 uppercase font-semibold">Tarif Parkir Active</p>
-            <p class="text-3xl font-extrabold text-emerald-400 mt-2">3 Jenis</p>
+
+        <!-- Tarif Parkir Active -->
+        <div class="bg-slate-800/80 border border-slate-700/60 p-6 rounded-2xl shadow-xl space-y-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">TARIF PARKIR ACTIVE</span>
+            <div class="text-4xl font-extrabold text-emerald-400">{{ $totalTarif }} Jenis</div>
         </div>
-        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl">
-            <p class="text-xs text-slate-400 uppercase font-semibold">Total Area Parkir</p>
-            <p class="text-3xl font-extrabold text-yellow-400 mt-2">5 Area</p>
+
+        <!-- Total Area Parkir -->
+        <div class="bg-slate-800/80 border border-slate-700/60 p-6 rounded-2xl shadow-xl space-y-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">TOTAL AREA PARKIR</span>
+            <div class="text-4xl font-extrabold text-amber-400">{{ $totalArea }} Area</div>
         </div>
-        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl">
-            <p class="text-xs text-slate-400 uppercase font-semibold">Kendaraan Terparkir</p>
-            <p class="text-3xl font-extrabold text-sky-400 mt-2">48 Unit</p>
+
+        <!-- Kendaraan Terparkir -->
+        <div class="bg-slate-800/80 border border-slate-700/60 p-6 rounded-2xl shadow-xl space-y-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">KENDARAAN TERPARKIR</span>
+            <div class="text-4xl font-extrabold text-sky-400">{{ $kendaraanTerparkir }} Unit</div>
         </div>
     </div>
 </div>
