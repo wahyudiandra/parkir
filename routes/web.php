@@ -20,17 +20,14 @@ Route::post('/login', function (Request $request) {
 
     $input = strtolower($request->email);
 
-    // Cari user di database berdasarkan username atau email
     $user = User::where('username', $input)
                 ->orWhere('email', $input)
                 ->first();
 
-    // Jika user tidak ditemukan ATAU password salah
     if (!$user || !Hash::check($request->password, $user->password)) {
         return back()->withErrors(['login_error' => 'Email/Username atau password salah!'])->withInput();
     }
 
-    // Arahkan sesuai role user
     if ($user->role === 'admin') {
         $redirectRoute = 'admin.dashboard';
     } elseif ($user->role === 'owner') {
@@ -45,14 +42,13 @@ Route::post('/login', function (Request $request) {
     return redirect()->route($redirectRoute);
 })->name('login.post');
 
-// Route Registrasi
 Route::get('/register', function () { return view('auth.register'); })->name('register');
 Route::post('/register', function (Request $request) {
     $request->validate([
         'nama_lengkap' => 'required|string|max:50',
         'username'     => 'required|string|max:50|unique:tb_user,username',
         'email'        => 'required|email|unique:tb_user,email',
-        'password'     => 'required|min:4',
+        'password'     => 'required',
         'role'         => 'required'
     ]);
 

@@ -15,6 +15,16 @@
         </div>
     @endif
 
+    @if($errors->any())
+        <div class="bg-rose-500/20 border border-rose-500 text-rose-300 p-4 rounded-xl text-sm">
+            <ul class="list-disc list-inside">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-xl">
         <table class="w-full text-left text-sm text-slate-300">
             <thead class="bg-slate-700/50 text-slate-400 uppercase text-xs">
@@ -30,10 +40,16 @@
                     <td class="p-4 font-semibold text-white uppercase">{{ $t->jenis_kendaraan }}</td>
                     <td class="p-4 font-bold text-emerald-400">Rp {{ number_format($t->tarif_per_jam, 0, ',', '.') }}</td>
                     <td class="p-4 text-center space-x-2">
+                        <!-- Tombol Edit -->
+                        <button onclick="editTarif({{ json_encode($t) }})" class="bg-amber-600/80 hover:bg-amber-600 text-white text-xs px-3 py-1.5 rounded font-semibold">
+                            Edit
+                        </button>
+
+                        <!-- Tombol Hapus -->
                         <form action="{{ route('admin.tarif.delete', $t->id_tarif) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menghapus tarif ini?')">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="bg-rose-600/80 hover:bg-rose-600 text-white text-xs px-3 py-1.5 rounded">Hapus</button>
+                            <button type="submit" class="bg-rose-600/80 hover:bg-rose-600 text-white text-xs px-3 py-1.5 rounded font-semibold">Hapus</button>
                         </form>
                     </td>
                 </tr>
@@ -73,4 +89,40 @@
         </form>
     </div>
 </div>
+
+<!-- Modal Edit Tarif -->
+<div id="modalEdit" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4">
+        <h2 class="text-xl font-bold text-white">Edit Tarif Parkir</h2>
+        <form id="formEdit" method="POST" class="space-y-4">
+            @csrf
+            @method('PUT')
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Jenis Kendaraan</label>
+                <select id="edit_jenis_kendaraan" name="jenis_kendaraan" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
+                    <option value="motor">Motor</option>
+                    <option value="mobil">Mobil</option>
+                    <option value="lainnya">Lainnya</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Tarif Per Jam (Rp)</label>
+                <input type="number" id="edit_tarif_per_jam" name="tarif_per_jam" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
+            </div>
+            <div class="flex space-x-2 pt-2">
+                <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-semibold py-2 rounded-lg text-sm">Update Tarif</button>
+                <button type="button" onclick="document.getElementById('modalEdit').classList.add('hidden')" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold py-2 rounded-lg text-sm">Batal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function editTarif(tarif) {
+        document.getElementById('formEdit').action = '/admin/tarif/' + tarif.id_tarif;
+        document.getElementById('edit_jenis_kendaraan').value = tarif.jenis_kendaraan.toLowerCase();
+        document.getElementById('edit_tarif_per_jam').value = tarif.tarif_per_jam;
+        document.getElementById('modalEdit').classList.remove('hidden');
+    }
+</script>
 @endsection

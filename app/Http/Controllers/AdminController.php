@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Tarif;
 use App\Models\AreaParkir;
@@ -13,67 +14,111 @@ use Carbon\Carbon;
 
 class AdminController extends Controller
 {
+    // --- DASHBOARD ADMIN ---
     public function dashboard()
     {
         $totalUser = User::count();
         $totalTarif = Tarif::count();
         $totalArea = AreaParkir::count();
+        $totalKendaraan = Kendaraan::count();
+        
         $kendaraanTerparkir = Transaksi::where('status', 'masuk')->count();
 
-        return view('admin.dashboard', compact('totalUser', 'totalTarif', 'totalArea', 'kendaraanTerparkir'));
+        return view('admin.dashboard', compact('totalUser', 'totalTarif', 'totalArea', 'totalKendaraan', 'kendaraanTerparkir'));
     }
 
-    // --- CRUD USER ---
-    public function users() {
-        $users = User::all();
+    // --- KELOLA USER ---
+    public function users()
+    {
+        $users = User::orderBy('id_user', 'desc')->get();
         return view('admin.users', compact('users'));
     }
 
-    public function storeUser(Request $request) {
+    public function storeUser(Request $request)
+    {
         $request->validate([
             'nama_lengkap' => 'required',
             'username'     => 'required|unique:tb_user,username',
+            'password'     => 'required',
             'role'         => 'required'
         ]);
 
-        User::create([
+        $user = User::create([
             'nama_lengkap' => $request->nama_lengkap,
             'username'     => strtolower($request->username),
-            'email'        => $request->email ?? strtolower($request->username) . '@gmail.com',
-            'password'     => bcrypt('password'),
-            'role'         => strtolower($request->role),
+            'email'        => strtolower($request->username) . '@gmail.com',
+            'password'     => Hash::make($request->password),
+            'role'         => $request->role,
             'status_aktif' => 1
         ]);
 
-        return redirect()->back()->with('success', 'User berhasil ditambahkan!');
-    }
-
-    public function updateUser(Request $request, $id) {
-        $user = User::findOrFail($id);
-        $user->update([
-            'nama_lengkap' => $request->nama_lengkap,
-            'username'     => strtolower($request->username),
-            'role'         => strtolower($request->role)
+        LogAktivitas::create([
+            'id_user'   => auth()->id(),
+            'aktivitas' => 'Menambahkan User Baru: ' . $user->username . ' (' . strtoupper($user->role) . ')',
+            'waktu'     => Carbon::now()
         ]);
 
-        return redirect()->back()->with('success', 'User berhasil diperbarui!');
+        return redirect()->route('admin.users')->with('success', 'User berhasil ditambahkan.');
     }
 
-    public function deleteUser($id) {
-        User::findOrFail($id)->delete();
-        return redirect()->back()->with('success', 'User berhasil dihapus!');
+    public function updateUser(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        $request->validate([
+            'nama_lengkap' => 'required',
+            'username'     => 'required|unique:tb_user,username,' . $id . ',id_user',
+            'role'         => 'required'
+        ]);
+
+        $data = [
+            'nama_lengkap' => $request->nama_lengkap,
+            'username'     => strtolower($request->username),
+            'role'         => $request->role,
+        ];
+
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->password);
+        }
+
+        $user->update($data);
+
+        LogAktivitas::create([
+            'id_user'   => auth()->id(),
+            'aktivitas' => 'Mengubah Data User: ' . $user->username,
+            'waktu'     => Carbon::now()
+        ]);
+
+        return redirect()->route('admin.users')->with('success', 'Data user berhasil diperbarui.');
     }
 
-    // --- CRUD TARIF ---
-    public function tarif() {
+    public function deleteUser($id)
+    {
+        $user = User::findOrFail($id);
+        $username = $user->username;
+        $user->delete();
+
+        LogAktivitas::create([
+            'id_user'   => auth()->id(),
+            'aktivitas' => 'Menghapus User: ' . $username,
+            'waktu'     => Carbon::now()
+        ]);
+
+        return redirect()->route('admin.users')->with('success', 'User berhasil dihapus!');
+    }
+
+    // --- KELOLA TARIF ---
+    public function tarif()
+    {
         $tarifs = Tarif::all();
         return view('admin.tarif', compact('tarifs'));
     }
 
-    public function storeTarif(Request $request) {
+    public function storeTarif(Request $request)
+    {
         $request->validate([
             'jenis_kendaraan' => 'required',
-            'tarif_per_jam'   => 'required|numeric',
+            'tarif_per_jam'   => 'required|numeric'
         ]);
 
         Tarif::create([
@@ -81,31 +126,62 @@ class AdminController extends Controller
             'tarif_per_jam'   => $request->tarif_per_jam
         ]);
 
-        return redirect()->back()->with('success', 'Tarif berhasil ditambahkan!');
+        LogAktivitas::create([
+            'id_user'   => auth()->id(),
+            'aktivitas' => 'Menambahkan Tarif Parkir Jenis: ' . strtoupper($request->jenis_kendaraan),
+            'waktu'     => Carbon::now()
+        ]);
+
+        return redirect()->route('admin.tarif')->with('success', 'Tarif berhasil ditambahkan.');
     }
 
-    public function updateTarif(Request $request, $id) {
+    public function updateTarif(Request $request, $id)
+    {
         $tarif = Tarif::findOrFail($id);
+
+        $request->validate([
+            'jenis_kendaraan' => 'required',
+            'tarif_per_jam'   => 'required|numeric'
+        ]);
+
         $tarif->update([
             'jenis_kendaraan' => $request->jenis_kendaraan,
             'tarif_per_jam'   => $request->tarif_per_jam
         ]);
 
-        return redirect()->back()->with('success', 'Tarif berhasil diperbarui!');
+        LogAktivitas::create([
+            'id_user'   => auth()->id(),
+            'aktivitas' => 'Mengubah Tarif Parkir Jenis: ' . strtoupper($request->jenis_kendaraan),
+            'waktu'     => Carbon::now()
+        ]);
+
+        return redirect()->route('admin.tarif')->with('success', 'Tarif berhasil diperbarui.');
     }
 
-    public function deleteTarif($id) {
-        Tarif::findOrFail($id)->delete();
-        return redirect()->back()->with('success', 'Tarif berhasil dihapus!');
+    public function deleteTarif($id)
+    {
+        $tarif = Tarif::findOrFail($id);
+        $jenis = $tarif->jenis_kendaraan;
+        $tarif->delete();
+
+        LogAktivitas::create([
+            'id_user'   => auth()->id(),
+            'aktivitas' => 'Menghapus Tarif Parkir Jenis: ' . strtoupper($jenis),
+            'waktu'     => Carbon::now()
+        ]);
+
+        return redirect()->route('admin.tarif')->with('success', 'Tarif berhasil dihapus.');
     }
 
-    // --- CRUD AREA PARKIR ---
-    public function area() {
+    // --- KELOLA AREA PARKIR ---
+    public function area()
+    {
         $areas = AreaParkir::all();
         return view('admin.area', compact('areas'));
     }
 
-    public function storeArea(Request $request) {
+    public function storeArea(Request $request)
+    {
         $request->validate([
             'nama_area' => 'required',
             'kapasitas' => 'required|numeric'
@@ -117,34 +193,64 @@ class AdminController extends Controller
             'terisi'    => 0
         ]);
 
-        return redirect()->back()->with('success', 'Area parkir berhasil ditambahkan!');
-    }
-
-    public function updateArea(Request $request, $id) {
-        $area = AreaParkir::findOrFail($id);
-        $area->update([
-            'nama_area' => $request->nama_area,
-            'kapasitas' => $request->kapasitas
+        LogAktivitas::create([
+            'id_user'   => auth()->id(),
+            'aktivitas' => 'Menambahkan Area Parkir Baru: ' . $request->nama_area,
+            'waktu'     => Carbon::now()
         ]);
 
-        return redirect()->back()->with('success', 'Area parkir berhasil diperbarui!');
+        return redirect()->route('admin.area')->with('success', 'Area parkir berhasil ditambahkan.');
     }
 
-    public function deleteArea($id) {
-        AreaParkir::findOrFail($id)->delete();
-        return redirect()->back()->with('success', 'Area parkir berhasil dihapus!');
-    }
+    public function updateArea(Request $request, $id)
+    {
+        $area = AreaParkir::findOrFail($id);
 
-    // --- CRUD KENDARAAN ---
-    public function kendaraan() {
-        $kendaraans = Kendaraan::with('user')->get();
-        $tarifs = Tarif::all();
-        return view('admin.kendaraan', compact('kendaraans', 'tarifs'));
-    }
-
-    public function storeKendaraan(Request $request) {
         $request->validate([
-            'plat_nomor'      => 'required|unique:tb_kendaraan,plat_nomor',
+            'nama_area' => 'required',
+            'kapasitas' => 'required|numeric'
+        ]);
+
+        $area->update([
+            'nama_area' => $request->nama_area,
+            'kapasitas' => $request->kapasitas,
+        ]);
+
+        LogAktivitas::create([
+            'id_user'   => auth()->id(),
+            'aktivitas' => 'Mengubah Area Parkir: ' . $request->nama_area,
+            'waktu'     => Carbon::now()
+        ]);
+
+        return redirect()->route('admin.area')->with('success', 'Area parkir berhasil diperbarui.');
+    }
+
+    public function deleteArea($id)
+    {
+        $area = AreaParkir::findOrFail($id);
+        $namaArea = $area->nama_area;
+        $area->delete();
+
+        LogAktivitas::create([
+            'id_user'   => auth()->id(),
+            'aktivitas' => 'Menghapus Area Parkir: ' . $namaArea,
+            'waktu'     => Carbon::now()
+        ]);
+
+        return redirect()->route('admin.area')->with('success', 'Area parkir berhasil dihapus.');
+    }
+
+    // --- KELOLA KENDARAAN ---
+    public function kendaraan()
+    {
+        $kendaraans = Kendaraan::all();
+        return view('admin.kendaraan', compact('kendaraans'));
+    }
+
+    public function storeKendaraan(Request $request)
+    {
+        $request->validate([
+            'plat_nomor'      => 'required',
             'jenis_kendaraan' => 'required'
         ]);
 
@@ -153,32 +259,62 @@ class AdminController extends Controller
             'jenis_kendaraan' => $request->jenis_kendaraan,
             'warna'           => $request->warna ?? '-',
             'pemilik'         => $request->pemilik ?? 'Umum',
-            'id_user'         => auth()->user()->id_user ?? null
+            'id_user'         => auth()->id()
         ]);
 
-        return redirect()->back()->with('success', 'Kendaraan berhasil ditambahkan!');
+        LogAktivitas::create([
+            'id_user'   => auth()->id(),
+            'aktivitas' => 'Menambahkan Kendaraan Terdaftar Plat: ' . strtoupper($request->plat_nomor),
+            'waktu'     => Carbon::now()
+        ]);
+
+        return redirect()->route('admin.kendaraan')->with('success', 'Kendaraan berhasil ditambahkan.');
     }
 
-    public function updateKendaraan(Request $request, $id) {
+    public function updateKendaraan(Request $request, $id)
+    {
         $kendaraan = Kendaraan::findOrFail($id);
+
+        $request->validate([
+            'plat_nomor'      => 'required',
+            'jenis_kendaraan' => 'required'
+        ]);
+
         $kendaraan->update([
             'plat_nomor'      => strtoupper($request->plat_nomor),
             'jenis_kendaraan' => $request->jenis_kendaraan,
             'warna'           => $request->warna ?? '-',
-            'pemilik'         => $request->pemilik
+            'pemilik'         => $request->pemilik ?? 'Umum'
         ]);
 
-        return redirect()->back()->with('success', 'Kendaraan berhasil diperbarui!');
+        LogAktivitas::create([
+            'id_user'   => auth()->id(),
+            'aktivitas' => 'Mengubah Data Kendaraan Plat: ' . strtoupper($request->plat_nomor),
+            'waktu'     => Carbon::now()
+        ]);
+
+        return redirect()->route('admin.kendaraan')->with('success', 'Data kendaraan berhasil diperbarui.');
     }
 
-    public function deleteKendaraan($id) {
-        Kendaraan::findOrFail($id)->delete();
-        return redirect()->back()->with('success', 'Kendaraan berhasil dihapus!');
+    public function deleteKendaraan($id)
+    {
+        $kendaraan = Kendaraan::findOrFail($id);
+        $plat = $kendaraan->plat_nomor;
+        $kendaraan->delete();
+
+        LogAktivitas::create([
+            'id_user'   => auth()->id(),
+            'aktivitas' => 'Menghapus Data Kendaraan Plat: ' . $plat,
+            'waktu'     => Carbon::now()
+        ]);
+
+        return redirect()->route('admin.kendaraan')->with('success', 'Data kendaraan berhasil dihapus.');
     }
 
     // --- LOG AKTIVITAS ---
-    public function log() {
-        $logs = LogAktivitas::with('user')->latest()->get();
+    public function log()
+    {
+        $logs = LogAktivitas::with('user')->orderBy('id_log', 'desc')->get();
         return view('admin.log', compact('logs'));
     }
 }

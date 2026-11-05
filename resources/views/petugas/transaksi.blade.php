@@ -3,9 +3,12 @@
 @section('content')
 <div class="space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-white">Transaksi Parkir Active</h1>
+        <div>
+            <h1 class="text-2xl font-bold text-white">Transaksi Parkir (Petugas)</h1>
+            <p class="text-xs text-slate-400">Input kendaraan masuk dan proses transaksi keluar</p>
+        </div>
         <button onclick="document.getElementById('modalMasuk').classList.remove('hidden')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-lg text-sm">
-            + Input Kendaraan Masuk
+            + Input Parkir Masuk
         </button>
     </div>
 
@@ -15,13 +18,27 @@
         </div>
     @endif
 
+    @if($errors->any())
+        <div class="bg-rose-500/20 border border-rose-500 text-rose-300 p-4 rounded-xl text-sm">
+            <ul class="list-disc list-inside">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <!-- Tabel Kendaraan Terparkir (Aktif) -->
     <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-xl">
+        <div class="p-4 bg-slate-700/30 border-b border-slate-700">
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Kendaraan Sedang Terparkir</h2>
+        </div>
         <table class="w-full text-left text-sm text-slate-300">
             <thead class="bg-slate-700/50 text-slate-400 uppercase text-xs">
                 <tr>
                     <th class="p-4">PLAT NOMOR</th>
-                    <th class="p-4">JENIS</th>
-                    <th class="p-4">AREA</th>
+                    <th class="p-4">JENIS KENDARAAN</th>
+                    <th class="p-4">AREA PARKIR</th>
                     <th class="p-4">WAKTU MASUK</th>
                     <th class="p-4 text-center">AKSI</th>
                 </tr>
@@ -30,19 +47,21 @@
                 @forelse($transaksiAktif as $t)
                 <tr class="hover:bg-slate-700/30">
                     <td class="p-4 font-bold text-white uppercase">{{ $t->kendaraan->plat_nomor ?? '-' }}</td>
-                    <td class="p-4 font-semibold text-indigo-400 uppercase">{{ $t->kendaraan->jenis_kendaraan ?? '-' }}</td>
+                    <td class="p-4 uppercase font-semibold text-indigo-400">{{ $t->kendaraan->jenis_kendaraan ?? '-' }}</td>
                     <td class="p-4 text-slate-300">{{ $t->area->nama_area ?? '-' }}</td>
-                    <td class="p-4 text-slate-400">{{ $t->waktu_masuk }}</td>
+                    <td class="p-4 text-xs font-mono text-slate-400">{{ $t->waktu_masuk }}</td>
                     <td class="p-4 text-center">
-                        <form action="{{ route('petugas.transaksi.keluar', $t->id_parkir) }}" method="POST" class="inline" onsubmit="return confirm('Proses keluar parkir dan cetak struk?')">
+                        <form action="{{ route('petugas.transaksi.keluar', $t->id_parkir) }}" method="POST" onsubmit="return confirm('Proses kendaraan keluar dan cetak struk?')">
                             @csrf
-                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded font-semibold">Proses Keluar</button>
+                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded font-bold shadow-lg shadow-emerald-600/30">
+                                Process Keluar
+                            </button>
                         </form>
                     </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5" class="p-4 text-center text-slate-500">Belum ada kendaraan yang sedang parkir.</td>
+                    <td colspan="5" class="p-4 text-center text-slate-500">Belum ada kendaraan yang sedang terparkir.</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -50,10 +69,10 @@
     </div>
 </div>
 
-<!-- Modal Input Kendaraan Masuk -->
+<!-- Modal Input Parkir Masuk -->
 <div id="modalMasuk" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4">
-        <h2 class="text-xl font-bold text-white">Kendaraan Masuk Parkir</h2>
+        <h2 class="text-xl font-bold text-white">Input Kendaraan Masuk</h2>
         <form action="{{ route('petugas.transaksi.masuk') }}" method="POST" class="space-y-4">
             @csrf
             <div>
@@ -64,22 +83,22 @@
                 <label class="block text-xs font-medium text-slate-400 mb-1">Jenis Kendaraan</label>
                 <select name="jenis_kendaraan" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
                     <option value="" disabled selected>-- Pilih Jenis Kendaraan --</option>
-                    <option value="motor">Motor</option>
-                    <option value="mobil">Mobil</option>
-                    <option value="lainnya">Lainnya</option>
+                    @foreach($tarifs as $tf)
+                        <option value="{{ strtolower($tf->jenis_kendaraan) }}">{{ strtoupper($tf->jenis_kendaraan) }} (Rp {{ number_format($tf->tarif_per_jam, 0, ',', '.') }}/jam)</option>
+                    @endforeach
                 </select>
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">Area Parkir</label>
                 <select name="id_area" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
                     <option value="" disabled selected>-- Pilih Area Parkir --</option>
-                    @foreach($areas as $area)
-                        <option value="{{ $area->id_area }}">{{ $area->nama_area }} (Sisa: {{ $area->kapasitas - $area->terisi }} Slot)</option>
+                    @foreach($areas as $ar)
+                        <option value="{{ $ar->id_area }}">{{ $ar->nama_area }} (Terisi: {{ $ar->terisi }}/{{ $ar->kapasitas }})</option>
                     @endforeach
                 </select>
             </div>
             <div class="flex space-x-2 pt-2">
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 rounded-lg text-sm">Simpan Masuk</button>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 rounded-lg text-sm">Simpan Transaksi</button>
                 <button type="button" onclick="document.getElementById('modalMasuk').classList.add('hidden')" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold py-2 rounded-lg text-sm">Batal</button>
             </div>
         </form>
