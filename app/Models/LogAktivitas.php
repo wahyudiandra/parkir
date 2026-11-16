@@ -11,6 +11,7 @@ class LogAktivitas extends Model
 
     protected $table = 'tb_log_aktivitas';
     protected $primaryKey = 'id_log';
+    public $timestamps = false; // Menggunakan waktu_aktivitas manual
 
     protected $fillable = [
         'id_user',

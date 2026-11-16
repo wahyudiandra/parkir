@@ -14,7 +14,6 @@ class PetugasController extends Controller
 {
     public function transaksi()
     {
-        // Menggunakan nama variabel $transaksiAktif agar sesuai dengan view
         $transaksiAktif = Transaksi::with(['kendaraan', 'area', 'user'])
             ->where('status', 'masuk')
             ->orderBy('id_parkir', 'desc')
@@ -64,9 +63,9 @@ class PetugasController extends Controller
 
         // CATAT LOG AKTIVITAS
         LogAktivitas::create([
-            'id_user'   => auth()->id(),
-            'aktivitas' => 'Input Kendaraan Masuk Plat: ' . $plat . ' di Area: ' . ($area->nama_area ?? 'Parkir'),
-            'waktu'     => Carbon::now()
+            'id_user'         => auth()->id(),
+            'aktivitas'       => 'Input Kendaraan Masuk Plat: ' . $plat . ' di Area: ' . ($area->nama_area ?? 'Parkir'),
+            'waktu_aktivitas' => Carbon::now()
         ]);
 
         return redirect()->route('petugas.transaksi')->with('success', 'Kendaraan berhasil masuk parkir.');
@@ -78,16 +77,27 @@ class PetugasController extends Controller
         
         $waktuMasuk = Carbon::parse($transaksi->waktu_masuk);
         $waktuKeluar = Carbon::now();
-        $durasi = max(1, $waktuKeluar->diffInHours($waktuMasuk));
 
-        // Cari tarif berdasarkan jenis kendaraan
-        $tarif = Tarif::where('jenis_kendaraan', $transaksi->kendaraan->jenis_kendaraan)->first();
+        // Hitung total menit parkir
+        $totalMenit = $waktuMasuk->diffInMinutes($waktuKeluar);
+
+        // Pembulatan ke atas dalam hitungan jam (misal 1 jam 5 menit dihitung 2 jam)
+        $durasiJam = (int) ceil($totalMenit / 60);
+        if ($durasiJam < 1) {
+            $durasiJam = 1; // Minimal hitungan 1 jam
+        }
+
+        // Cari tarif per jam berdasarkan jenis kendaraan
+        $jenisKendaraan = strtolower($transaksi->kendaraan->jenis_kendaraan ?? 'motor');
+        $tarif = Tarif::whereRaw('LOWER(jenis_kendaraan) = ?', [$jenisKendaraan])->first();
+        
         $biayaPerJam = $tarif ? $tarif->tarif_per_jam : 2000;
-        $totalBiaya = $durasi * $biayaPerJam;
+        $totalBiaya = $durasiJam * $biayaPerJam;
 
+        // Update data transaksi
         $transaksi->update([
             'waktu_keluar' => $waktuKeluar,
-            'durasi_jam'   => $durasi,
+            'durasi_jam'   => $durasiJam,
             'biaya_total'  => $totalBiaya,
             'status'       => 'keluar'
         ]);
@@ -99,9 +109,9 @@ class PetugasController extends Controller
 
         // CATAT LOG AKTIVITAS
         LogAktivitas::create([
-            'id_user'   => auth()->id(),
-            'aktivitas' => 'Memproses Transaksi Keluar Plat: ' . ($transaksi->kendaraan->plat_nomor ?? '-') . ' (Biaya: Rp ' . number_format($totalBiaya, 0, ',', '.') . ')',
-            'waktu'     => Carbon::now()
+            'id_user'         => auth()->id(),
+            'aktivitas'       => 'Memproses Transaksi Keluar Plat: ' . ($transaksi->kendaraan->plat_nomor ?? '-') . ' (Durasi: ' . $durasiJam . ' Jam, Biaya: Rp ' . number_format($totalBiaya, 0, ',', '.') . ')',
+            'waktu_aktivitas' => Carbon::now()
         ]);
 
         return redirect()->route('petugas.struk', $transaksi->id_parkir)->with('success', 'Transaksi keluar berhasil diproses.');

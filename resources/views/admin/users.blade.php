@@ -39,7 +39,7 @@
                 @forelse($users as $u)
                 <tr class="hover:bg-slate-700/30">
                     <td class="p-4 font-semibold text-white">{{ $u->nama_lengkap }}</td>
-                    <td class="p-4 text-slate-400">{{ $u->username }}</td>
+                    <td class="p-4 font-mono text-slate-300">{{ $u->username }}</td>
                     <td class="p-4">
                         <span class="px-2.5 py-1 rounded-full text-xs font-bold uppercase
                             {{ $u->role === 'admin' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : '' }}
@@ -49,12 +49,9 @@
                         </span>
                     </td>
                     <td class="p-4 text-center space-x-2">
-                        <!-- Tombol Edit -->
                         <button onclick="editUser({{ json_encode($u) }})" class="bg-amber-600/80 hover:bg-amber-600 text-white text-xs px-3 py-1.5 rounded font-semibold">
                             Edit
                         </button>
-
-                        <!-- Tombol Hapus -->
                         <form action="{{ route('admin.users.delete', $u->id_user) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menghapus user ini?')">
                             @csrf
                             @method('DELETE')
@@ -64,7 +61,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="4" class="p-4 text-center text-slate-500">Belum ada data user.</td>
+                    <td colspan="4" class="p-4 text-center text-slate-500">Belum ada user terdaftar.</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -80,30 +77,21 @@
             @csrf
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">Nama Lengkap</label>
-                <input type="text" name="nama_lengkap" placeholder="Nama Lengkap" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
+                <input type="text" name="nama_lengkap" placeholder="Leo Saputra" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
             </div>
             <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">Username</label>
-                <input type="text" name="username" placeholder="username" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
+                <label class="block text-xs font-medium text-slate-400 mb-1">Username / Email</label>
+                <input type="text" name="username" placeholder="leo" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">Password</label>
-                <div class="relative">
-                    <input type="password" id="tambahPassword" name="password" placeholder="••••••••" required class="w-full bg-slate-700 border border-slate-600 rounded-lg pl-4 pr-10 py-2 text-white text-sm focus:outline-none focus:border-indigo-500">
-                    <button type="button" onclick="togglePassword('tambahPassword', 'tambahEyeIcon')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white">
-                        <svg id="tambahEyeIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                    </button>
-                </div>
+                <input type="password" name="password" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">Role</label>
                 <select name="role" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
-                    <option value="" disabled selected>-- Pilih Role --</option>
-                    <option value="admin">Admin</option>
                     <option value="petugas">Petugas</option>
+                    <option value="admin">Admin</option>
                     <option value="owner">Owner</option>
                 </select>
             </div>
@@ -127,26 +115,18 @@
                 <input type="text" id="edit_nama_lengkap" name="nama_lengkap" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
             </div>
             <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">Username</label>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Username / Email</label>
                 <input type="text" id="edit_username" name="username" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
             </div>
             <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">Password Baru (Opsional)</label>
-                <div class="relative">
-                    <input type="password" id="editPassword" name="password" placeholder="Kosongkan jika tidak diubah" class="w-full bg-slate-700 border border-slate-600 rounded-lg pl-4 pr-10 py-2 text-white text-sm focus:outline-none focus:border-indigo-500">
-                    <button type="button" onclick="togglePassword('editPassword', 'editEyeIcon')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white">
-                        <svg id="editEyeIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                    </button>
-                </div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Password Baru (Kosongkan jika tidak diubah)</label>
+                <input type="password" name="password" placeholder="••••••••" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">Role</label>
                 <select id="edit_role" name="role" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
-                    <option value="admin">Admin</option>
                     <option value="petugas">Petugas</option>
+                    <option value="admin">Admin</option>
                     <option value="owner">Owner</option>
                 </select>
             </div>
@@ -165,18 +145,6 @@
         document.getElementById('edit_username').value = user.username;
         document.getElementById('edit_role').value = user.role;
         document.getElementById('modalEdit').classList.remove('hidden');
-    }
-
-    function togglePassword(inputId, eyeIconId) {
-        const input = document.getElementById(inputId);
-        const eye = document.getElementById(eyeIconId);
-        if (input.type === 'password') {
-            input.type = 'text';
-            eye.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a8.959 8.959 0 013.674-.823c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21M3 3l18 18" />`;
-        } else {
-            input.type = 'password';
-            eye.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />`;
-        }
     }
 </script>
 @endsection

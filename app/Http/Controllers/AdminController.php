@@ -43,19 +43,21 @@ class AdminController extends Controller
             'role'         => 'required'
         ]);
 
+        $username = strtolower(trim($request->username));
+
         $user = User::create([
             'nama_lengkap' => $request->nama_lengkap,
-            'username'     => strtolower($request->username),
-            'email'        => strtolower($request->username) . '@gmail.com',
+            'username'     => $username,
+            'email'        => $username . '@gmail.com',
             'password'     => Hash::make($request->password),
             'role'         => $request->role,
             'status_aktif' => 1
         ]);
 
         LogAktivitas::create([
-            'id_user'   => auth()->id(),
-            'aktivitas' => 'Menambahkan User Baru: ' . $user->username . ' (' . strtoupper($user->role) . ')',
-            'waktu'     => Carbon::now()
+            'id_user'         => auth()->id(),
+            'aktivitas'       => 'Menambahkan User Baru: ' . $user->username . ' (' . strtoupper($user->role) . ')',
+            'waktu_aktivitas' => Carbon::now()
         ]);
 
         return redirect()->route('admin.users')->with('success', 'User berhasil ditambahkan.');
@@ -71,12 +73,16 @@ class AdminController extends Controller
             'role'         => 'required'
         ]);
 
+        $username = strtolower(trim($request->username));
+
         $data = [
             'nama_lengkap' => $request->nama_lengkap,
-            'username'     => strtolower($request->username),
+            'username'     => $username,
+            'email'        => $username . '@gmail.com', // Update email agar selaras dengan username baru
             'role'         => $request->role,
         ];
 
+        // Jika form password diisi, enkripsi dan perbarui password
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
@@ -84,9 +90,9 @@ class AdminController extends Controller
         $user->update($data);
 
         LogAktivitas::create([
-            'id_user'   => auth()->id(),
-            'aktivitas' => 'Mengubah Data User: ' . $user->username,
-            'waktu'     => Carbon::now()
+            'id_user'         => auth()->id(),
+            'aktivitas'       => 'Mengubah Data User: ' . $user->username,
+            'waktu_aktivitas' => Carbon::now()
         ]);
 
         return redirect()->route('admin.users')->with('success', 'Data user berhasil diperbarui.');
@@ -99,9 +105,9 @@ class AdminController extends Controller
         $user->delete();
 
         LogAktivitas::create([
-            'id_user'   => auth()->id(),
-            'aktivitas' => 'Menghapus User: ' . $username,
-            'waktu'     => Carbon::now()
+            'id_user'         => auth()->id(),
+            'aktivitas'       => 'Menghapus User: ' . $username,
+            'waktu_aktivitas' => Carbon::now()
         ]);
 
         return redirect()->route('admin.users')->with('success', 'User berhasil dihapus!');
@@ -127,9 +133,9 @@ class AdminController extends Controller
         ]);
 
         LogAktivitas::create([
-            'id_user'   => auth()->id(),
-            'aktivitas' => 'Menambahkan Tarif Parkir Jenis: ' . strtoupper($request->jenis_kendaraan),
-            'waktu'     => Carbon::now()
+            'id_user'         => auth()->id(),
+            'aktivitas'       => 'Menambahkan Tarif Parkir Jenis: ' . strtoupper($request->jenis_kendaraan),
+            'waktu_aktivitas' => Carbon::now()
         ]);
 
         return redirect()->route('admin.tarif')->with('success', 'Tarif berhasil ditambahkan.');
@@ -150,9 +156,9 @@ class AdminController extends Controller
         ]);
 
         LogAktivitas::create([
-            'id_user'   => auth()->id(),
-            'aktivitas' => 'Mengubah Tarif Parkir Jenis: ' . strtoupper($request->jenis_kendaraan),
-            'waktu'     => Carbon::now()
+            'id_user'         => auth()->id(),
+            'aktivitas'       => 'Mengubah Tarif Parkir Jenis: ' . strtoupper($request->jenis_kendaraan),
+            'waktu_aktivitas' => Carbon::now()
         ]);
 
         return redirect()->route('admin.tarif')->with('success', 'Tarif berhasil diperbarui.');
@@ -165,9 +171,9 @@ class AdminController extends Controller
         $tarif->delete();
 
         LogAktivitas::create([
-            'id_user'   => auth()->id(),
-            'aktivitas' => 'Menghapus Tarif Parkir Jenis: ' . strtoupper($jenis),
-            'waktu'     => Carbon::now()
+            'id_user'         => auth()->id(),
+            'aktivitas'       => 'Menghapus Tarif Parkir Jenis: ' . strtoupper($jenis),
+            'waktu_aktivitas' => Carbon::now()
         ]);
 
         return redirect()->route('admin.tarif')->with('success', 'Tarif berhasil dihapus.');
@@ -194,9 +200,9 @@ class AdminController extends Controller
         ]);
 
         LogAktivitas::create([
-            'id_user'   => auth()->id(),
-            'aktivitas' => 'Menambahkan Area Parkir Baru: ' . $request->nama_area,
-            'waktu'     => Carbon::now()
+            'id_user'         => auth()->id(),
+            'aktivitas'       => 'Menambahkan Area Parkir Baru: ' . $request->nama_area,
+            'waktu_aktivitas' => Carbon::now()
         ]);
 
         return redirect()->route('admin.area')->with('success', 'Area parkir berhasil ditambahkan.');
@@ -217,9 +223,9 @@ class AdminController extends Controller
         ]);
 
         LogAktivitas::create([
-            'id_user'   => auth()->id(),
-            'aktivitas' => 'Mengubah Area Parkir: ' . $request->nama_area,
-            'waktu'     => Carbon::now()
+            'id_user'         => auth()->id(),
+            'aktivitas'       => 'Mengubah Area Parkir: ' . $request->nama_area,
+            'waktu_aktivitas' => Carbon::now()
         ]);
 
         return redirect()->route('admin.area')->with('success', 'Area parkir berhasil diperbarui.');
@@ -232,9 +238,9 @@ class AdminController extends Controller
         $area->delete();
 
         LogAktivitas::create([
-            'id_user'   => auth()->id(),
-            'aktivitas' => 'Menghapus Area Parkir: ' . $namaArea,
-            'waktu'     => Carbon::now()
+            'id_user'         => auth()->id(),
+            'aktivitas'       => 'Menghapus Area Parkir: ' . $namaArea,
+            'waktu_aktivitas' => Carbon::now()
         ]);
 
         return redirect()->route('admin.area')->with('success', 'Area parkir berhasil dihapus.');
@@ -263,9 +269,9 @@ class AdminController extends Controller
         ]);
 
         LogAktivitas::create([
-            'id_user'   => auth()->id(),
-            'aktivitas' => 'Menambahkan Kendaraan Terdaftar Plat: ' . strtoupper($request->plat_nomor),
-            'waktu'     => Carbon::now()
+            'id_user'         => auth()->id(),
+            'aktivitas'       => 'Menambahkan Kendaraan Terdaftar Plat: ' . strtoupper($request->plat_nomor),
+            'waktu_aktivitas' => Carbon::now()
         ]);
 
         return redirect()->route('admin.kendaraan')->with('success', 'Kendaraan berhasil ditambahkan.');
@@ -288,9 +294,9 @@ class AdminController extends Controller
         ]);
 
         LogAktivitas::create([
-            'id_user'   => auth()->id(),
-            'aktivitas' => 'Mengubah Data Kendaraan Plat: ' . strtoupper($request->plat_nomor),
-            'waktu'     => Carbon::now()
+            'id_user'         => auth()->id(),
+            'aktivitas'       => 'Mengubah Data Kendaraan Plat: ' . strtoupper($request->plat_nomor),
+            'waktu_aktivitas' => Carbon::now()
         ]);
 
         return redirect()->route('admin.kendaraan')->with('success', 'Data kendaraan berhasil diperbarui.');
@@ -303,9 +309,9 @@ class AdminController extends Controller
         $kendaraan->delete();
 
         LogAktivitas::create([
-            'id_user'   => auth()->id(),
-            'aktivitas' => 'Menghapus Data Kendaraan Plat: ' . $plat,
-            'waktu'     => Carbon::now()
+            'id_user'         => auth()->id(),
+            'aktivitas'       => 'Menghapus Data Kendaraan Plat: ' . $plat,
+            'waktu_aktivitas' => Carbon::now()
         ]);
 
         return redirect()->route('admin.kendaraan')->with('success', 'Data kendaraan berhasil dihapus.');

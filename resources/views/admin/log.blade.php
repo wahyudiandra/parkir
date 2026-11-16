@@ -19,7 +19,7 @@
             <tbody class="divide-y divide-slate-700">
                 @forelse($logs as $l)
                 <tr class="hover:bg-slate-700/30">
-                    <td class="p-4 text-xs text-slate-400 font-mono">{{ $l->waktu ?? $l->created_at }}</td>
+                    <td class="p-4 text-xs text-slate-400 font-mono">{{ $l->waktu_aktivitas ?? $l->created_at }}</td>
                     <td class="p-4 font-semibold text-indigo-400">
                         {{ $l->user->nama_lengkap ?? ($l->user->username ?? 'Sistem') }}
                     </td>

@@ -9,12 +9,17 @@ use App\Http\Controllers\PetugasController;
 use App\Http\Controllers\OwnerController;
 
 // --- 1. AUTHENTICATION & REGISTRATION ---
-Route::get('/', function () { return view('auth.login'); });
-Route::get('/login', function () { return view('auth.login'); })->name('login');
+Route::get('/', function () { 
+    return view('auth.login'); 
+});
+
+Route::get('/login', function () { 
+    return view('auth.login'); 
+})->name('login');
 
 Route::post('/login', function (Request $request) {
     $request->validate([
-        'email' => 'required',
+        'email'    => 'required',
         'password' => 'required',
     ]);
 
@@ -42,7 +47,10 @@ Route::post('/login', function (Request $request) {
     return redirect()->route($redirectRoute);
 })->name('login.post');
 
-Route::get('/register', function () { return view('auth.register'); })->name('register');
+Route::get('/register', function () { 
+    return view('auth.register'); 
+})->name('register');
+
 Route::post('/register', function (Request $request) {
     $request->validate([
         'nama_lengkap' => 'required|string|max:50',
@@ -70,6 +78,7 @@ Route::post('/logout', function (Request $request) {
     $request->session()->regenerateToken();
     return redirect()->route('login');
 })->name('logout');
+
 
 // --- 2. HALAMAN ADMIN ---
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
@@ -103,6 +112,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/log', [AdminController::class, 'log'])->name('admin.log');
 });
 
+
 // --- 3. HALAMAN PETUGAS ---
 Route::middleware(['auth', 'role:petugas'])->prefix('petugas')->group(function () {
     Route::get('/transaksi', [PetugasController::class, 'transaksi'])->name('petugas.transaksi');
@@ -110,6 +120,7 @@ Route::middleware(['auth', 'role:petugas'])->prefix('petugas')->group(function (
     Route::post('/transaksi/keluar/{id}', [PetugasController::class, 'keluarParkir'])->name('petugas.transaksi.keluar');
     Route::get('/struk/{id?}', [PetugasController::class, 'struk'])->name('petugas.struk');
 });
+
 
 // --- 4. HALAMAN OWNER ---
 Route::middleware(['auth', 'role:owner'])->prefix('owner')->group(function () {
