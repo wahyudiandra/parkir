@@ -78,11 +78,10 @@ class AdminController extends Controller
         $data = [
             'nama_lengkap' => $request->nama_lengkap,
             'username'     => $username,
-            'email'        => $username . '@gmail.com', // Update email agar selaras dengan username baru
+            'email'        => $username . '@gmail.com',
             'role'         => $request->role,
         ];
 
-        // Jika form password diisi, enkripsi dan perbarui password
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
@@ -116,29 +115,31 @@ class AdminController extends Controller
     // --- KELOLA TARIF ---
     public function tarif()
     {
-        $tarifs = Tarif::all();
+        $tarifs = Tarif::orderBy('id_tarif', 'asc')->get();
         return view('admin.tarif', compact('tarifs'));
     }
 
     public function storeTarif(Request $request)
     {
         $request->validate([
-            'jenis_kendaraan' => 'required',
-            'tarif_per_jam'   => 'required|numeric'
+            'jenis_kendaraan' => 'required|string|max:50|unique:tb_tarif,jenis_kendaraan',
+            'tarif_per_jam'   => 'required|numeric|min:0'
         ]);
 
+        $jenis = strtoupper(trim($request->jenis_kendaraan));
+
         Tarif::create([
-            'jenis_kendaraan' => $request->jenis_kendaraan,
+            'jenis_kendaraan' => $jenis,
             'tarif_per_jam'   => $request->tarif_per_jam
         ]);
 
         LogAktivitas::create([
             'id_user'         => auth()->id(),
-            'aktivitas'       => 'Menambahkan Tarif Parkir Jenis: ' . strtoupper($request->jenis_kendaraan),
+            'aktivitas'       => 'Menambahkan Tarif Parkir Jenis: ' . $jenis . ' (Rp ' . number_format($request->tarif_per_jam, 0, ',', '.') . '/jam)',
             'waktu_aktivitas' => Carbon::now()
         ]);
 
-        return redirect()->route('admin.tarif')->with('success', 'Tarif berhasil ditambahkan.');
+        return redirect()->route('admin.tarif')->with('success', 'Tarif kendaraan ' . $jenis . ' berhasil ditambahkan.');
     }
 
     public function updateTarif(Request $request, $id)
@@ -146,22 +147,24 @@ class AdminController extends Controller
         $tarif = Tarif::findOrFail($id);
 
         $request->validate([
-            'jenis_kendaraan' => 'required',
-            'tarif_per_jam'   => 'required|numeric'
+            'jenis_kendaraan' => 'required|string|max:50|unique:tb_tarif,jenis_kendaraan,' . $id . ',id_tarif',
+            'tarif_per_jam'   => 'required|numeric|min:0'
         ]);
 
+        $jenis = strtoupper(trim($request->jenis_kendaraan));
+
         $tarif->update([
-            'jenis_kendaraan' => $request->jenis_kendaraan,
+            'jenis_kendaraan' => $jenis,
             'tarif_per_jam'   => $request->tarif_per_jam
         ]);
 
         LogAktivitas::create([
             'id_user'         => auth()->id(),
-            'aktivitas'       => 'Mengubah Tarif Parkir Jenis: ' . strtoupper($request->jenis_kendaraan),
+            'aktivitas'       => 'Mengubah Tarif Parkir Jenis: ' . $jenis . ' (Rp ' . number_format($request->tarif_per_jam, 0, ',', '.') . '/jam)',
             'waktu_aktivitas' => Carbon::now()
         ]);
 
-        return redirect()->route('admin.tarif')->with('success', 'Tarif berhasil diperbarui.');
+        return redirect()->route('admin.tarif')->with('success', 'Tarif kendaraan ' . $jenis . ' berhasil diperbarui.');
     }
 
     public function deleteTarif($id)
@@ -183,6 +186,15 @@ class AdminController extends Controller
     public function area()
     {
         $areas = AreaParkir::all();
+        foreach ($areas as $area) {
+            $jumlahTerparkir = Transaksi::where('id_area', $area->id_area)
+                ->where('status', 'masuk')
+                ->count();
+
+            if ($area->terisi != $jumlahTerparkir) {
+                $area->update(['terisi' => $jumlahTerparkir]);
+            }
+        }
         return view('admin.area', compact('areas'));
     }
 
@@ -249,8 +261,9 @@ class AdminController extends Controller
     // --- KELOLA KENDARAAN ---
     public function kendaraan()
     {
-        $kendaraans = Kendaraan::all();
-        return view('admin.kendaraan', compact('kendaraans'));
+        $kendaraans = Kendaraan::orderBy('id_kendaraan', 'desc')->get();
+        $tarifs = Tarif::orderBy('id_tarif', 'asc')->get();
+        return view('admin.kendaraan', compact('kendaraans', 'tarifs'));
     }
 
     public function storeKendaraan(Request $request)
@@ -261,8 +274,8 @@ class AdminController extends Controller
         ]);
 
         Kendaraan::create([
-            'plat_nomor'      => strtoupper($request->plat_nomor),
-            'jenis_kendaraan' => $request->jenis_kendaraan,
+            'plat_nomor'      => strtoupper(trim($request->plat_nomor)),
+            'jenis_kendaraan' => strtoupper(trim($request->jenis_kendaraan)),
             'warna'           => $request->warna ?? '-',
             'pemilik'         => $request->pemilik ?? 'Umum',
             'id_user'         => auth()->id()
@@ -287,8 +300,8 @@ class AdminController extends Controller
         ]);
 
         $kendaraan->update([
-            'plat_nomor'      => strtoupper($request->plat_nomor),
-            'jenis_kendaraan' => $request->jenis_kendaraan,
+            'plat_nomor'      => strtoupper(trim($request->plat_nomor)),
+            'jenis_kendaraan' => strtoupper(trim($request->jenis_kendaraan)),
             'warna'           => $request->warna ?? '-',
             'pemilik'         => $request->pemilik ?? 'Umum'
         ]);

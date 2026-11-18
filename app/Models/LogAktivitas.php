@@ -11,7 +11,7 @@ class LogAktivitas extends Model
 
     protected $table = 'tb_log_aktivitas';
     protected $primaryKey = 'id_log';
-    public $timestamps = false; // Menggunakan waktu_aktivitas manual
+    public $timestamps = false;
 
     protected $fillable = [
         'id_user',
@@ -19,6 +19,7 @@ class LogAktivitas extends Model
         'waktu_aktivitas'
     ];
 
+    // Relasi ke tabel User
     public function user()
     {
         return $this->belongsTo(User::class, 'id_user', 'id_user');

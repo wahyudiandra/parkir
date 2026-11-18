@@ -3,8 +3,11 @@
 @section('content')
 <div class="space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-white">Kelola Tarif Parkir</h1>
-        <button onclick="document.getElementById('modalTambah').classList.remove('hidden')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-lg text-sm">
+        <div>
+            <h1 class="text-2xl font-bold text-white">Kelola Tarif Parkir</h1>
+            <p class="text-xs text-slate-400">Atur tarif parkir per jam sesuai jenis kendaraan secara fleksibel</p>
+        </div>
+        <button onclick="document.getElementById('modalTambah').classList.remove('hidden')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-lg text-sm shadow-lg shadow-indigo-600/30 transition-colors">
             + Tambah Tarif
         </button>
     </div>
@@ -37,15 +40,12 @@
             <tbody class="divide-y divide-slate-700">
                 @forelse($tarifs as $t)
                 <tr class="hover:bg-slate-700/30">
-                    <td class="p-4 font-semibold text-white uppercase">{{ $t->jenis_kendaraan }}</td>
-                    <td class="p-4 font-bold text-emerald-400">Rp {{ number_format($t->tarif_per_jam, 0, ',', '.') }}</td>
+                    <td class="p-4 font-bold text-white uppercase">{{ $t->jenis_kendaraan }}</td>
+                    <td class="p-4 font-bold text-emerald-400">Rp {{ number_format($t->tarif_per_jam, 0, ',', '.') }} / Jam</td>
                     <td class="p-4 text-center space-x-2">
-                        <!-- Tombol Edit -->
                         <button onclick="editTarif({{ json_encode($t) }})" class="bg-amber-600/80 hover:bg-amber-600 text-white text-xs px-3 py-1.5 rounded font-semibold">
                             Edit
                         </button>
-
-                        <!-- Tombol Hapus -->
                         <form action="{{ route('admin.tarif.delete', $t->id_tarif) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menghapus tarif ini?')">
                             @csrf
                             @method('DELETE')
@@ -63,55 +63,80 @@
     </div>
 </div>
 
-<!-- Modal Tambah Tarif -->
+<!-- Modal Tambah Tarif (Ketik Manual) -->
 <div id="modalTambah" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4">
-        <h2 class="text-xl font-bold text-white">Tambah Tarif Parkir</h2>
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+        <div>
+            <h2 class="text-xl font-bold text-white">Tambah Tarif Parkir</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Ketik nama jenis kendaraan dan tentukan tarif per jamnya</p>
+        </div>
+
         <form action="{{ route('admin.tarif.store') }}" method="POST" class="space-y-4">
             @csrf
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">Jenis Kendaraan</label>
-                <select name="jenis_kendaraan" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
-                    <option value="" disabled selected>-- Pilih Jenis Kendaraan --</option>
-                    <option value="motor">Motor</option>
-                    <option value="mobil">Mobil</option>
-                    <option value="lainnya">Lainnya</option>
-                </select>
+                <input 
+                    type="text" 
+                    name="jenis_kendaraan" 
+                    placeholder="Contoh: Motor, Mobil, Bus, Truk, Sepeda..." 
+                    required 
+                    class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2.5 text-white text-sm uppercase focus:outline-none focus:border-indigo-500"
+                >
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">Tarif Per Jam (Rp)</label>
-                <input type="number" name="tarif_per_jam" placeholder="2000" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
+                <input 
+                    type="number" 
+                    name="tarif_per_jam" 
+                    placeholder="Contoh: 5000" 
+                    min="0"
+                    required 
+                    class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500"
+                >
             </div>
             <div class="flex space-x-2 pt-2">
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 rounded-lg text-sm">Simpan</button>
-                <button type="button" onclick="document.getElementById('modalTambah').classList.add('hidden')" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold py-2 rounded-lg text-sm">Batal</button>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-lg text-sm">Simpan</button>
+                <button type="button" onclick="document.getElementById('modalTambah').classList.add('hidden')" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold py-2.5 rounded-lg text-sm">Batal</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Modal Edit Tarif -->
+<!-- Modal Edit Tarif (Ketik Manual) -->
 <div id="modalEdit" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4">
-        <h2 class="text-xl font-bold text-white">Edit Tarif Parkir</h2>
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+        <div>
+            <h2 class="text-xl font-bold text-white">Edit Tarif Parkir</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Ubah jenis kendaraan atau nominal tarif per jam</p>
+        </div>
+
         <form id="formEdit" method="POST" class="space-y-4">
             @csrf
             @method('PUT')
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">Jenis Kendaraan</label>
-                <select id="edit_jenis_kendaraan" name="jenis_kendaraan" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
-                    <option value="motor">Motor</option>
-                    <option value="mobil">Mobil</option>
-                    <option value="lainnya">Lainnya</option>
-                </select>
+                <input 
+                    type="text" 
+                    id="edit_jenis_kendaraan" 
+                    name="jenis_kendaraan" 
+                    required 
+                    class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2.5 text-white text-sm uppercase focus:outline-none focus:border-indigo-500"
+                >
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-400 mb-1">Tarif Per Jam (Rp)</label>
-                <input type="number" id="edit_tarif_per_jam" name="tarif_per_jam" required class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-sm">
+                <input 
+                    type="number" 
+                    id="edit_tarif_per_jam" 
+                    name="tarif_per_jam" 
+                    min="0"
+                    required 
+                    class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500"
+                >
             </div>
             <div class="flex space-x-2 pt-2">
-                <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-semibold py-2 rounded-lg text-sm">Update Tarif</button>
-                <button type="button" onclick="document.getElementById('modalEdit').classList.add('hidden')" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold py-2 rounded-lg text-sm">Batal</button>
+                <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-semibold py-2.5 rounded-lg text-sm">Update Tarif</button>
+                <button type="button" onclick="document.getElementById('modalEdit').classList.add('hidden')" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold py-2.5 rounded-lg text-sm">Batal</button>
             </div>
         </form>
     </div>
@@ -120,7 +145,7 @@
 <script>
     function editTarif(tarif) {
         document.getElementById('formEdit').action = '/admin/tarif/' + tarif.id_tarif;
-        document.getElementById('edit_jenis_kendaraan').value = tarif.jenis_kendaraan.toLowerCase();
+        document.getElementById('edit_jenis_kendaraan').value = tarif.jenis_kendaraan;
         document.getElementById('edit_tarif_per_jam').value = tarif.tarif_per_jam;
         document.getElementById('modalEdit').classList.remove('hidden');
     }
