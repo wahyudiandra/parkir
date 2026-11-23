@@ -46,6 +46,10 @@
             color: #059669 !important;
         }
 
+        #area-struk .text-amber-400 {
+            color: #d97706 !important;
+        }
+
         #area-struk .border-slate-700 {
             border-color: #cbd5e1 !important;
         }
@@ -91,16 +95,22 @@
                 <span class="font-mono font-bold text-white">#TRX-{{ $transaksi->id_parkir }}</span>
             </div>
             <div class="flex justify-between">
-                <span class="text-slate-400">Plat Nomor:</span>
-                <span class="font-bold text-white uppercase">{{ $transaksi->kendaraan->plat_nomor ?? '-' }}</span>
+                 <span class="text-slate-400">Plat Nomor:</span>
+                <span class="font-bold text-white uppercase">{{ $transaksi->kendaraan->plat_nomor ?? $transaksi->plat_manual ?? '-' }}</span>
             </div>
             <div class="flex justify-between">
                 <span class="text-slate-400">Jenis Kendaraan:</span>
-                <span class="font-bold text-indigo-400 uppercase">{{ $transaksi->kendaraan->jenis_kendaraan ?? '-' }}</span>
+                <span class="font-bold text-indigo-400 uppercase">{{ $transaksi->kendaraan->jenis_kendaraan ?? $transaksi->jenis_manual ?? '-' }}</span>
             </div>
             <div class="flex justify-between">
                 <span class="text-slate-400">Area Parkir:</span>
                 <span class="text-slate-200">{{ $transaksi->area->nama_area ?? '-' }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-400">Kategori Tarif:</span>
+                <span class="font-bold uppercase {{ ($transaksi->jenis_input ?? 'terdaftar') === 'manual' ? 'text-amber-400' : 'text-emerald-400' }}">
+                    {{ ($transaksi->jenis_input ?? 'terdaftar') === 'manual' ? 'Manual (Umum)' : 'Terdaftar (Member)' }}
+                </span>
             </div>
             <div class="flex justify-between">
                 <span class="text-slate-400">Petugas:</span>

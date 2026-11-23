@@ -19,7 +19,7 @@ class PetugasController extends Controller
             ->orderBy('id_parkir', 'desc')
             ->get();
 
-        // Sinkronisasi otomatis jumlah 'terisi' setiap area berdasarkan kendaraan yang sedang terparkir
+        // Sinkronisasi otomatis jumlah slot terisi di setiap area
         $areas = AreaParkir::all();
         foreach ($areas as $area) {
             $jumlahTerparkir = Transaksi::where('id_area', $area->id_area)
@@ -31,13 +31,14 @@ class PetugasController extends Controller
             }
         }
 
-        // Ambil daftar kendaraan terdaftar & tarif untuk pencarian otomatis
+        // Ambil data master kendaraan (Admin) dan daftar tarif
         $kendaraans = Kendaraan::orderBy('plat_nomor', 'asc')->get();
-        $tarifs = Tarif::all()->keyBy(function ($item) {
+        $listTarif  = Tarif::orderBy('jenis_kendaraan', 'asc')->get();
+        $tarifs     = $listTarif->keyBy(function ($item) {
             return strtolower($item->jenis_kendaraan);
         });
 
-        return view('petugas.transaksi', compact('transaksiAktif', 'areas', 'kendaraans', 'tarifs'));
+        return view('petugas.transaksi', compact('transaksiAktif', 'areas', 'kendaraans', 'tarifs', 'listTarif'));
     }
 
     public function masukParkir(Request $request)
@@ -49,18 +50,18 @@ class PetugasController extends Controller
 
         $plat = strtoupper(trim($request->plat_nomor));
 
-        // 1. Cari kendaraan yang sudah terdaftar di Data Kendaraan (Admin)
+        // 1. Cek apakah plat nomor sudah terdaftar di Data Kendaraan (Admin)
         $kendaraan = Kendaraan::whereRaw('UPPER(plat_nomor) = ?', [$plat])->first();
 
-        if (!$kendaraan) {
-            return back()->withErrors([
-                'plat_nomor' => 'Plat nomor ' . $plat . ' belum terdaftar di Data Kendaraan! Silakan hubungi Admin untuk mendaftarkannya.'
-            ])->withInput();
-        }
-
-        // 2. Cek apakah kendaraan ini saat ini masih berstatus terparkir
-        $cekAktif = Transaksi::where('id_kendaraan', $kendaraan->id_kendaraan)
-            ->where('status', 'masuk')
+        // 2. Cek apakah kendaraan dengan plat ini sedang terparkir (baik terdaftar maupun manual)
+        $cekAktif = Transaksi::where('status', 'masuk')
+            ->where(function ($query) use ($kendaraan, $plat) {
+                if ($kendaraan) {
+                    $query->where('id_kendaraan', $kendaraan->id_kendaraan);
+                } else {
+                    $query->whereRaw('UPPER(plat_manual) = ?', [$plat]);
+                }
+            })
             ->first();
 
         if ($cekAktif) {
@@ -69,7 +70,7 @@ class PetugasController extends Controller
             ])->withInput();
         }
 
-        // 3. Cek ketersediaan sisa slot pada area parkir yang dipilih
+        // 3. Cek ketersediaan sisa slot pada area parkir
         $area = AreaParkir::findOrFail($request->id_area);
         $jumlahTerparkir = Transaksi::where('id_area', $area->id_area)
             ->where('status', 'masuk')
@@ -82,45 +83,88 @@ class PetugasController extends Controller
             ])->withInput();
         }
 
-        // 4. Buat Transaksi Parkir Masuk
-        Transaksi::create([
-            'id_kendaraan' => $kendaraan->id_kendaraan,
-            'id_area'      => $area->id_area,
-            'id_user'      => auth()->id(),
-            'waktu_masuk'  => Carbon::now(),
-            'status'       => 'masuk'
-        ]);
+        if ($kendaraan) {
+            // JALUR TERDAFTAR (Data Admin -> Tarif Murah)
+            Transaksi::create([
+                'id_kendaraan' => $kendaraan->id_kendaraan,
+                'id_area'      => $area->id_area,
+                'id_user'      => auth()->id(),
+                'jenis_input'  => 'terdaftar',
+                'waktu_masuk'  => Carbon::now(),
+                'status'       => 'masuk'
+            ]);
 
-        // 5. Sinkronisasi ulang kolom terisi pada database
+            $jenisLog = $kendaraan->jenis_kendaraan;
+            $pesanSukses = 'Kendaraan ' . $plat . ' berhasil masuk — Data Admin (Tarif Murah).';
+            $jenisInputLog = 'TERDAFTAR';
+        } else {
+            // JALUR MANUAL (TIDAK dimasukkan ke Data Kendaraan Admin -> Tarif Lebih Mahal)
+            $request->validate([
+                'jenis_kendaraan' => 'required'
+            ], [
+                'jenis_kendaraan.required' => 'Plat nomor belum terdaftar. Silakan pilih Jenis Kendaraan untuk input manual!'
+            ]);
+
+            $jenisManual   = strtoupper(trim($request->jenis_kendaraan));
+            $warnaManual   = $request->warna ? trim($request->warna) : '-';
+            $pemilikManual = $request->pemilik ? trim($request->pemilik) : 'Umum';
+
+            Transaksi::create([
+                'id_kendaraan'   => null,
+                'plat_manual'    => $plat,
+                'jenis_manual'   => $jenisManual,
+                'warna_manual'   => $warnaManual,
+                'pemilik_manual' => $pemilikManual,
+                'id_area'        => $area->id_area,
+                'id_user'        => auth()->id(),
+                'jenis_input'    => 'manual',
+                'waktu_masuk'    => Carbon::now(),
+                'status'         => 'masuk'
+            ]);
+
+            $jenisLog = $jenisManual;
+            $pesanSukses = 'Kendaraan ' . $plat . ' berhasil masuk — Input Manual (Tarif Umum).';
+            $jenisInputLog = 'MANUAL';
+        }
+
         $area->update(['terisi' => $jumlahTerparkir + 1]);
 
-        // 6. Catat Log Aktivitas
         LogAktivitas::create([
             'id_user'         => auth()->id(),
-            'aktivitas'       => 'Input Kendaraan Masuk Plat: ' . $plat . ' (' . strtoupper($kendaraan->jenis_kendaraan) . ') di Area: ' . $area->nama_area,
+            'aktivitas'       => 'Input Masuk [' . $jenisInputLog . '] Plat: ' . $plat . ' (' . $jenisLog . ') di ' . $area->nama_area,
             'waktu_aktivitas' => Carbon::now()
         ]);
 
-        return redirect()->route('petugas.transaksi')->with('success', 'Kendaraan ' . $plat . ' berhasil masuk parkir.');
+        return redirect()->route('petugas.transaksi')->with('success', $pesanSukses);
     }
 
     public function keluarParkir($id)
     {
         $transaksi = Transaksi::with(['kendaraan', 'area'])->findOrFail($id);
         
-        $waktuMasuk = Carbon::parse($transaksi->waktu_masuk);
+        $waktuMasuk  = Carbon::parse($transaksi->waktu_masuk);
         $waktuKeluar = Carbon::now();
 
         $totalMenit = $waktuMasuk->diffInMinutes($waktuKeluar);
-        $durasiJam = (int) ceil($totalMenit / 60);
+        $durasiJam  = (int) ceil($totalMenit / 60);
         if ($durasiJam < 1) {
             $durasiJam = 1;
         }
 
-        $jenisKendaraan = strtolower($transaksi->kendaraan->jenis_kendaraan ?? 'motor');
+        // Ambil jenis kendaraan dari relasi tb_kendaraan (terdaftar) atau kolom jenis_manual (manual)
+        $jenisKendaraan = strtolower($transaksi->kendaraan->jenis_kendaraan ?? $transaksi->jenis_manual ?? 'motor');
+        $platNomor      = $transaksi->kendaraan->plat_nomor ?? $transaksi->plat_manual ?? '-';
+
         $tarif = Tarif::whereRaw('LOWER(jenis_kendaraan) = ?', [$jenisKendaraan])->first();
-        
-        $biayaPerJam = $tarif ? $tarif->tarif_per_jam : 2000;
+        $tarifDasar = $tarif ? $tarif->tarif_per_jam : 2000;
+
+        // Pembeda Tarif: Terdaftar (Murah) vs Manual (+Rp 1.000/jam lebih mahal)
+        if ($transaksi->jenis_input === 'manual') {
+            $biayaPerJam = $tarifDasar + 1000;
+        } else {
+            $biayaPerJam = $tarifDasar;
+        }
+
         $totalBiaya = $durasiJam * $biayaPerJam;
 
         $transaksi->update([
@@ -139,7 +183,7 @@ class PetugasController extends Controller
 
         LogAktivitas::create([
             'id_user'         => auth()->id(),
-            'aktivitas'       => 'Memproses Transaksi Keluar Plat: ' . ($transaksi->kendaraan->plat_nomor ?? '-') . ' (Durasi: ' . $durasiJam . ' Jam, Biaya: Rp ' . number_format($totalBiaya, 0, ',', '.') . ')',
+            'aktivitas'       => 'Keluar [' . strtoupper($transaksi->jenis_input) . '] Plat: ' . $platNomor . ' (Durasi: ' . $durasiJam . ' Jam, Total: Rp ' . number_format($totalBiaya, 0, ',', '.') . ')',
             'waktu_aktivitas' => Carbon::now()
         ]);
 
