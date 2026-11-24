@@ -32,6 +32,7 @@
                     <th class="p-4">NAMA LENGKAP</th>
                     <th class="p-4">USERNAME</th>
                     <th class="p-4">ROLE</th>
+                    <th class="p-4">STATUS</th>
                     <th class="p-4 text-center">AKSI</th>
                 </tr>
             </thead>
@@ -48,7 +49,32 @@
                             {{ $u->role }}
                         </span>
                     </td>
+                    <td class="p-4">
+                        @if($u->status_aktif)
+                            <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs px-2.5 py-1 rounded-full font-bold">
+                                AKTIF
+                            </span>
+                        @else
+                            <span class="bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs px-2.5 py-1 rounded-full font-bold">
+                                NONAKTIF
+                            </span>
+                        @endif
+                    </td>
                     <td class="p-4 text-center space-x-2">
+                        @if($u->id_user != auth()->id())
+                            <form action="{{ route('admin.users.toggle', $u->id_user) }}" method="POST" class="inline">
+                                @csrf
+                                @if($u->status_aktif)
+                                    <button type="submit" class="bg-slate-600 hover:bg-slate-500 text-white text-xs px-3 py-1.5 rounded font-semibold">
+                                        Nonaktifkan
+                                    </button>
+                                @else
+                                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded font-semibold">
+                                        Aktifkan
+                                    </button>
+                                @endif
+                            </form>
+                        @endif
                         <button onclick="editUser({{ json_encode($u) }})" class="bg-amber-600/80 hover:bg-amber-600 text-white text-xs px-3 py-1.5 rounded font-semibold">
                             Edit
                         </button>
@@ -61,7 +87,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="4" class="p-4 text-center text-slate-500">Belum ada user terdaftar.</td>
+                    <td colspan="5" class="p-4 text-center text-slate-500">Belum ada user terdaftar.</td>
                 </tr>
                 @endforelse
             </tbody>

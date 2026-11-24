@@ -33,6 +33,11 @@ Route::post('/login', function (Request $request) {
         return back()->withErrors(['login_error' => 'Email/Username atau password salah!'])->withInput();
     }
 
+    // CEK STATUS AKTIF USER SEBELUM LOGIN
+    if (!$user->status_aktif) {
+        return back()->withErrors(['login_error' => 'Akun Anda sedang dinonaktifkan oleh Admin. Silakan hubungi Admin!'])->withInput();
+    }
+
     if ($user->role === 'admin') {
         $redirectRoute = 'admin.dashboard';
     } elseif ($user->role === 'owner') {
@@ -84,11 +89,12 @@ Route::post('/logout', function (Request $request) {
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     
-    // CRUD User
+    // CRUD User + Toggle Status Aktif/Nonaktif
     Route::get('/users', [AdminController::class, 'users'])->name('admin.users');
     Route::post('/users', [AdminController::class, 'storeUser'])->name('admin.users.store');
     Route::put('/users/{id}', [AdminController::class, 'updateUser'])->name('admin.users.update');
     Route::delete('/users/{id}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
+    Route::post('/users/{id}/toggle-status', [AdminController::class, 'toggleStatusUser'])->name('admin.users.toggle');
 
     // CRUD Tarif
     Route::get('/tarif', [AdminController::class, 'tarif'])->name('admin.tarif');

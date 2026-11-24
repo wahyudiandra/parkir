@@ -336,4 +336,29 @@ class AdminController extends Controller
         $logs = LogAktivitas::with('user')->orderBy('id_log', 'desc')->get();
         return view('admin.log', compact('logs'));
     }
+
+    //--- status akrif user ---
+    public function toggleStatusUser($id)
+    {
+        $user = User::findOrFail($id);
+
+        // Cegah Admin menonaktifkan akunnya sendiri yang sedang dipakai
+        if ($user->id_user == auth()->id()) {
+            return back()->withErrors(['error' => 'Anda tidak dapat menonaktifkan akun Anda sendiri yang sedang login!']);
+        }
+
+        // Ubah status: jika 1 jadi 0, jika 0 jadi 1
+        $user->status_aktif = !$user->status_aktif;
+        $user->save();
+
+        $statusText = $user->status_aktif ? 'AKTIF' : 'NONAKTIF';
+
+        LogAktivitas::create([
+            'id_user'         => auth()->id(),
+            'aktivitas'       => 'Mengubah status user [' . $user->username . '] menjadi ' . $statusText,
+            'waktu_aktivitas' => \Carbon\Carbon::now(),
+        ]);
+
+        return back()->with('success', 'Status user ' . $user->username . ' berhasil diubah menjadi ' . $statusText . '.');
+    }
 }
